@@ -1,0 +1,14 @@
+example test file
+
+this file should be should tested on
+
+<?php
+
+?>
+
+<div>
+<?php 
+echo 'some text here';
+
+?>
+</div>
