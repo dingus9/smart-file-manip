@@ -56,7 +56,7 @@ class SmartReplace:
                                     matches: string for substr
                                     re.match.groups() for re
                                     the orig replacement pattern
-                                return string will replace the replace string per match
+                                return tuple(match,replace) # match
                             }
         """
         

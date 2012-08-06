@@ -19,4 +19,4 @@ bulk_replace.add_path_filter('match','.*\.txt$')
 bulk_replace.add_search_filter({'regex':['<(\?)(php)',],'replace':'not be','callback': callback_func1 })
 
 
-bulk_replace.run()
+bulk_replace.run() # replace=True to actually replace the files
