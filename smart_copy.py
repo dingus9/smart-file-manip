@@ -30,7 +30,7 @@ class SmartCopy(SmartFileManip):
         
     def copy_to(self,copy_target=''):
         if copy_target and isinstance(copy_target, self._strtype):
-            self._copy_target = copy_target
+            self._copy_target = self.path_lib.abspath(copy_target)
         else:
             return self._copy_target
     
