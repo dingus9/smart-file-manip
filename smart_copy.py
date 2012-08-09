@@ -44,7 +44,7 @@ class SmartCopy(SmartFileManip):
     ## Run the main job
     ######
     def run(self):
-        if 'purge_existing' in self._opts:
+        if 'purge_existing' in self._opts and self.path_lib.exists(self._copy_target):
             shutil.rmtree(self._copy_target)
         if not self.copy_to() or not self.copy_from():
             raise Exception, "You must specify: "+self.__class__.__name__+".copy_to() and copy_from() or "+self.__class__.__name__+"__init__(to, from)"
