@@ -1,6 +1,6 @@
 from tempfile import mkstemp
 from shutil import move
-from os import remove as lib_remove, close as lib_close, walk as lib_walk
+from os import remove as lib_remove, close as lib_close, walk as lib_walk, path as lib_path
 import sys,re
 
 class SmartFileManip(object):
@@ -9,25 +9,36 @@ class SmartFileManip(object):
     """
     
     def __init__(self,base_path=''):
-        self._base_path = base_path
-        self._retype = type(re.compile('test'))
-        self._strtype = type('string')
-        self._path_filters = {}#{'regex':[],'path':[],'no_dir':[],'ext':[]}
+        ##
+        # internalize libraries
         self.re = re
         self.walk = lib_walk
         self.close = lib_close
         self.remove = lib_remove
+        self.path_lib = lib_path
+        ##
+        # Init data structures
+        self._retype = type(re.compile('test'))
+        self._strtype = type('string')
+        self.set_basepath(base_path)
+        self._path_filters = {'exclude':[],'match':[]} # Init cont for add_path_filter
+        
+
  
     ######
     ## Set the base path
     ######
-    def set_basepath(path):
-        self._base_path = path
+    def set_basepath(self,path):
+        if path and isinstance(path,self._strtype):
+            if self.path_lib.exists(path):
+                self._base_path = self.path_lib.abspath(path)
+            else:
+                raise Exception, self.__class__.__name__ + ".set_basepath: Path does not exist"
     
     ######
     ## Return the base path
     ######
-    def get_basepath():
+    def get_basepath(self):
         return self._base_path
     
     ######
@@ -37,11 +48,17 @@ class SmartFileManip(object):
         """Adds a filter to the list of filters.
         Files are only parsed if a filter returns true and no_dir removes directories that match. All files are matched if no filters are defined.
         Arguments:
-        type    -- one of regex, str, ext,no_dir remember to use os.path.sep:
+        type    -- one of match or exclude:
         filter  -- the filter rule
         type:filters get stored as seperat dictionaries in a list
             {'match':'some regex rule as a string or re.compiled regex'}
             {'exclude:"Exclude this regex"}
+        Tips:
+            * Use os.path.sep for valid /\ path seps...
+            * Dirs are matched with an ending / while file paths are not
+            * Exclude single direcotries like .git or .svn with:
+                - {'exclude': '\.git/'}
+                - more globally match all git stuff with '\.git.*' which will match .gitignore and .git dir etc.
         """
         if(not isinstance(filter, self._retype)):
             filter = re.compile(filter) # compile re string to a re object if it's not one already
@@ -82,20 +99,36 @@ class SmartFileManip(object):
         for root, dirs, files in self.walk(self._base_path):
             for dir in dirs: #remove excluded directories
                 for reg in self._path_filters['exclude']:
-                    if self.find(dir, reg):
+                    regmatch = self.find(dir+self.path_lib.sep, reg)
+                    if regmatch == dir+self.path_lib.sep:
                         dirs.remove(dir)
             
             files_this_go = []
             
             for file in files:
                 for reg in self._path_filters['exclude']:
-                    if self.find(root+file, reg):
-                        del files[file]
+                    regmatch = self.find(root+self.path_lib.sep+file, reg)
+                    if regmatch == root+self.path_lib.sep+file:
+                        files.remove(file)
+                
                 for reg in self._path_filters['match']:
-                    if self.find(root+file, reg):
+                    regmatch = self.find(root+self.path_lib.sep+file, reg)
+                    if regmatch == root+self.path_lib.sep+file:
                         files_this_go.append(file)
             
-            for file in files_this_go:
+            class_callback(root) # first dir call
+            
+            if len(self._path_filters['match']):
+                for file in files_this_go:
+                    class_callback(root,file)
+            else:
                 class_callback(root,file)
             
-        return 
+        return
+    
+    ######
+    ## Replace method
+    ######
+    def replace(self,string, pattern, subst, nPerLine):
+        if(isinstance(pattern,type('string'))):
+            return string.replace(pattern, subst, nPerLine)

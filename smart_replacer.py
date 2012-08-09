@@ -40,14 +40,6 @@ class SmartReplacer(SmartFileManip):
         if 'substr' in filter:
             for substr in filter['substr']:
                 self._search_filters.append({'find':substr,'replace':filter['replace'],'callback':callback})
-    
-    ######
-    ## Local replace method uses find from smart_file_manip
-    ######
-    def replace(self,string, pattern, subst, nPerLine):
-        if(isinstance(pattern,type('string'))):
-            return string.replace(pattern, subst, nPerLine)
-
 
     ######
     ## The file replace guts
@@ -100,6 +92,9 @@ class SmartReplacer(SmartFileManip):
         self._replace = replace
         super(SmartReplacer,self).run(self.exec_callback)
     
-    def exec_callback(self,root,file):
-        for filter in self._search_filters:
-            self.file_replace(root+file, filter['find'],filter['replace'],filter['callback'])
+    def exec_callback(self,root,file=''):
+        if file: #ignore directory only call... only op on files
+            for filter in self._search_filters:
+                self.file_replace(root+self.path_lib.sep+file, filter['find'],filter['replace'],filter['callback'])
+        else:
+            return
