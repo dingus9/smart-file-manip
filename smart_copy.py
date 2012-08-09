@@ -102,3 +102,13 @@ class SmartCopy(SmartFileManip):
             elif 'prune_empty' in self._opts and self._dir_file_count[item] or 'prune_empty' not in self._opts:
                 os.mkdir(tgt)
         return
+    
+    #####
+    ## Get stats
+    #####
+    def get_stats(self):
+        dir_count = 0
+        for x,y in self._dir_count.items():
+            dir_count += y
+        
+        return {'dir_count':dir_count,'file_count':self._dir_file_count[self.copy_from()]}

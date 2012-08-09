@@ -22,6 +22,7 @@ class SmartFileManip(object):
         self._strtype = type('string')
         self.set_basepath(base_path)
         self._path_filters = {'exclude':[],'match':[]} # Init cont for add_path_filter
+        self._path_debug = False
         
 
  
@@ -97,7 +98,7 @@ class SmartFileManip(object):
         if(not self._base_path):
             raise Exception, "You must set the base path see: "+self.__class__.__name__+".set_base_path or "+self.__class__.__name__+"__init__"
         for root, dirs, files in self.walk(self._base_path):
-            for dir in dirs: #remove excluded directories
+            for dir in tuple(dirs): #remove excluded directories
                 for reg in self._path_filters['exclude']:
                     regmatch = self.find(dir+self.path_lib.sep, reg)
                     if regmatch == dir+self.path_lib.sep:
@@ -105,7 +106,7 @@ class SmartFileManip(object):
             
             files_this_go = []
             
-            for file in files:
+            for file in tuple(files):
                 for reg in self._path_filters['exclude']:
                     regmatch = self.find(root+self.path_lib.sep+file, reg)
                     if regmatch == root+self.path_lib.sep+file:
@@ -116,13 +117,21 @@ class SmartFileManip(object):
                     if regmatch == root+self.path_lib.sep+file:
                         files_this_go.append(file)
             
-            class_callback(root) # first dir call
-            
-            if len(self._path_filters['match']):
-                for file in files_this_go:
-                    class_callback(root,file)
+            ##
+            # Run class callbacks
+            if(not self._path_debug):
+                class_callback(root) # first dir call make root dir
+                if len(self._path_filters['match']):
+                    for file in files_this_go:
+                        class_callback(root,file)
+                else:
+                    for file in files:
+                        class_callback(root,file)
             else:
-                class_callback(root,file)
+                self._path_debug['files'] += len(files_this_go)
+                self._path_debug['dirs'] += 1
+                self._path_debug['items'].append(root)
+                self._path_debug['items'].append(files_this_go)
             
         return
     
@@ -132,3 +141,12 @@ class SmartFileManip(object):
     def replace(self,string, pattern, subst, nPerLine):
         if(isinstance(pattern,type('string'))):
             return string.replace(pattern, subst, nPerLine)
+        
+    def path_debug(self,level=1):
+        self._path_debug = {'files':0,'dirs':0,'items':[]}
+        self.run()
+        if level:
+            print self._path_debug['files'], self._path_debug['dirs']
+        if level > 1:
+            for x in self._path_debug['items']:
+                print x
