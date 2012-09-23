@@ -81,10 +81,14 @@ class SmartReplacer(SmartFileManip):
             ###
             ## Print file sep headers
             ###
-            print ''
-            print '-------------------------------------------------------'
-            print root+self.path_lib.sep+file
-            print '-------------------------------------------------------'
+            if self._replace:
+                print root+self.path_lib.sep+file
+            else:
+                print ''
+                print '-------------------------------------------------------'
+                print root+self.path_lib.sep+file
+                print '-------------------------------------------------------'
+                
             in_file = open(root+self.path_lib.sep+file)
             tempfiles=[]
             for filter in self._search_filters:
