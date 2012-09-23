@@ -1,6 +1,7 @@
 from smart_file_manip import SmartFileManip
+import tempfile
 
-import sys,re
+import sys,re,os
 
 class SmartReplacer(SmartFileManip):
     
@@ -40,11 +41,12 @@ class SmartReplacer(SmartFileManip):
         if 'substr' in filter:
             for substr in filter['substr']:
                 self._search_filters.append({'find':substr,'replace':filter['replace'],'callback':callback})
-
+    
+    
     ######
     ## The file replace guts
     ######
-    def file_replace(self,file, find, replace, callback, nLines=-1, nPerLine=-1):
+    def file_replace(self,orig_file,new_file, find, replace, callback, nLines=-1, nPerLine=-1):
         """Replace a files contents based on a pattern.
             
             Arguments:
@@ -54,36 +56,17 @@ class SmartReplacer(SmartFileManip):
             nLines   -- replace N matching lines in the file -1 for all
             nPerLine -- replace N matches per mathing line in file -1 for all
             """
-            
-        #Create temp file
-        if self._replace:
-            fh, abs_path = mkstemp()
-            new_out = open(abs_path,'w')
-        else:
-            new_out = sys.stdout
-        
-        old_file = open(file)
-        
+        #old_file becomes file, and new_out becomes new_file
         n = 0
-        for line in old_file:
+        for line in orig_file:
             match = self.find(line,find)
             if match and (nLines == -1 or n < nLines):
                 if callback: ### callback(groups, match, replace) return string to replace callbacks are defined in add_search_filter()###
                     match,replace = callback(self.find(line,find,True),match,replace)
-                new_out.write(self.replace(line, match, replace,nPerLine))
+                new_file.write(self.replace(line, match, replace,nPerLine))
                 n+=1
             else:
-                new_out.write(line)
-        
-        old_file.close()
-        
-        #close temp file
-        if self._replace:
-            file_out.close()
-            self.close(fh)
-            #Move new file
-            self.remove(file)
-            move(abs_path, file)
+                new_file.write(line)
             
     ######
     ## Run current task
@@ -94,7 +77,33 @@ class SmartReplacer(SmartFileManip):
     
     def exec_callback(self,root,file=''):
         if file: #ignore directory only call... only op on files
+            
+            ###
+            ## Print file sep headers
+            ###
+            print ''
+            print '-------------------------------------------------------'
+            print root+self.path_lib.sep+file
+            print '-------------------------------------------------------'
+            in_file = open(root+self.path_lib.sep+file)
+            tempfiles=[]
             for filter in self._search_filters:
-                self.file_replace(root+self.path_lib.sep+file, filter['find'],filter['replace'],filter['callback'])
+                out_file = tempfile.NamedTemporaryFile(delete=False) #Create temp file
+                tempfiles.append(out_file)
+                self.file_replace(in_file,out_file, filter['find'],filter['replace'],filter['callback'])
+                out_file.seek(0,0)
+                in_file.close()
+                if self._replace:
+                    os.remove(in_file.name) #Remove all tempfiles+source except the last which is renamed below
+                in_file = out_file
+            
+            if self._replace:               #Rename last tempfile to working file
+                os.rename(out_file.name,root+self.path_lib.sep+file)
+            else:                           #Print to std output and then remove tempfiles
+                for line in out_file:
+                    sys.stdout.write(line)
+                for tmpfile in tempfiles:   #Remove tempfiles
+                    tmpfile.close()
+                    os.remove(tmpfile.name)
         else:
             return

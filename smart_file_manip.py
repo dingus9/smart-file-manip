@@ -101,7 +101,7 @@ class SmartFileManip(object):
             for dir in tuple(dirs): #remove excluded directories
                 for reg in self._path_filters['exclude']:
                     regmatch = self.find(dir+self.path_lib.sep, reg)
-                    if regmatch == dir+self.path_lib.sep:
+                    if str(regmatch) + self.path_lib.sep  == dir+self.path_lib.sep:
                         dirs.remove(dir)
             
             files_this_go = []
@@ -146,7 +146,7 @@ class SmartFileManip(object):
         self._path_debug = {'files':0,'dirs':0,'items':[]}
         self.run()
         if level:
-            print self._path_debug['files'], self._path_debug['dirs']
+            print str(self._path_debug['files']) + ' Files', 'and ' + str(self._path_debug['dirs']) +' Dirs' 
         if level > 1:
             for x in self._path_debug['items']:
                 print x
